@@ -1,3 +1,8 @@
 ignoredBuiltDependencies:
+  - '@apollo/protobufjs'
+  - '@prisma/engines'
+  - esbuild
+  - msw
+  - prisma
   - sharp
   - unrs-resolver

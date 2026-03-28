@@ -1,0 +1,90 @@
+services:
+
+  # ─── Next.js App ────────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev        # ← separate dev dockerfile
+    container_name: gombe-web
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker                     # ← load from file not inline
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - gombe-network
+    develop:
+      watch:
+        - action: sync                  # instant sync, no rebuild
+          path: ./app
+          target: /app/app
+        - action: sync
+          path: ./components
+          target: /app/components
+        - action: sync
+          path: ./lib
+          target: /app/lib
+        - action: sync
+          path: ./generated
+          target: /app/generated
+        - action: sync
+          path: ./prisma
+          target: /app/prisma
+        - action: rebuild               # full rebuild only when needed
+          path: package.json
+        - action: rebuild
+          path: pnpm-lock.yaml
+
+          
+  # ─── PostgreSQL Database ─────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: gombe-postgres
+    ports:
+      - "5433:5432"                  # expose to host for local Prisma/psql access
+    environment:
+      POSTGRES_USER: gombe_user
+      POSTGRES_PASSWORD: gombe_pass
+      POSTGRES_DB: gombe_services
+    volumes:
+      - gombe_pgdata:/var/lib/postgresql/data   # persistent data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gombe_user -d gombe_services"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - gombe-network
+
+  # ─── Redis Cache ─────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: gombe-redis
+    ports:
+      - "6379:6379"                  # expose to host for debugging
+    volumes:
+      - gombe_redis_data:/data       # persistent cache
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - gombe-network
+
+# ─── Named Volumes ───────────────────────────────────────────────────────
+volumes:
+  gombe_pgdata:       # postgres data survives container restarts/removal
+  gombe_redis_data:   # redis data survives container restarts/removal
+
+# ─── Internal Network ────────────────────────────────────────────────────
+networks:
+  gombe-network:
+    driver: bridge    # containers talk to each other by service name (db, redis)

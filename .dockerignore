@@ -1,0 +1,31 @@
+# Dependencies — Docker installs its own
+node_modules
+.pnpm-store
+
+# Next.js build output — rebuilt inside Docker
+.next
+
+# Environment files — injected via docker-compose environment
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dev/editor files
+.DS_Store
+*.pem
+.vscode
+.idea
+README.md
+
+# Docker files themselves
+Dockerfile
+docker-compose.yml
+.dockerignore
