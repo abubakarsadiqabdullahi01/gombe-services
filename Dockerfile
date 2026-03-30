@@ -13,7 +13,7 @@ COPY package.json pnpm-lock.yaml* ./
 COPY prisma ./prisma/
 
 # Install all deps (including dev — needed for prisma generate)
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
 # Generate Prisma client
@@ -36,7 +36,7 @@ COPY . .
 
 # Build Next.js app (output: standalone for smaller image)
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
+RUN --mount=type=cache,target=/app/.next/cache \
     pnpm build
 
 
