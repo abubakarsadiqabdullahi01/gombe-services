@@ -16,6 +16,22 @@ Open `http://localhost:3000`.
 - REST routes: under `app/api/**`
 - GraphQL route: `app/api/graphql/route.ts`
 
+## Docker Modes
+
+Development mode (app + postgres + redis + file sync):
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+Production-like mode (web only, external DB/Redis required):
+
+```bash
+set DATABASE_URL=postgresql://...
+set REDIS_URL=redis://...
+docker compose up --build
+```
+
 ## GraphQL Guide
 
 For the full implementation and concepts (Next.js route handlers + Apollo Server/Client, schema, resolver flow, and REST vs GraphQL comparison), read:

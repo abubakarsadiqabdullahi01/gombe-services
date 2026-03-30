@@ -81,6 +81,7 @@ function serializeService(service: ServiceWithRelations) {
 
 const SERVICES_CACHE_TTL_SECONDS = 120;
 const SERVICES_CACHE_PREFIX = "services:list:";
+const isDev = process.env.NODE_ENV !== "production";
 
 type ServicesResult = {
   services: ReturnType<typeof serializeService>[];
@@ -129,10 +130,10 @@ const resolvers = {
 
       const cached = await getCachedJson<ServicesResult>(cacheKey);
       if (cached) {
-        console.log(`[Cache][services] HIT key=${cacheKey}`);
+        if (isDev) console.log(`[Cache][services] HIT key=${cacheKey}`);
         return cached;
       }
-      console.log(`[Cache][services] MISS key=${cacheKey}`);
+      if (isDev) console.log(`[Cache][services] MISS key=${cacheKey}`);
 
       const where: Prisma.ServiceWhereInput = {
         ...(category ? { category: { name: category } } : {}),
@@ -169,9 +170,11 @@ const resolvers = {
       };
 
       await setCachedJson(cacheKey, payload, SERVICES_CACHE_TTL_SECONDS);
-      console.log(
-        `[Cache][services] SET key=${cacheKey} ttl=${SERVICES_CACHE_TTL_SECONDS}s`,
-      );
+      if (isDev) {
+        console.log(
+          `[Cache][services] SET key=${cacheKey} ttl=${SERVICES_CACHE_TTL_SECONDS}s`,
+        );
+      }
       return payload;
     },
   },
@@ -217,7 +220,7 @@ const resolvers = {
 
       const pattern = `${SERVICES_CACHE_PREFIX}*`;
       await invalidateCacheByPattern(pattern);
-      console.log(`[Cache][services] INVALIDATE pattern=${pattern}`);
+      if (isDev) console.log(`[Cache][services] INVALIDATE pattern=${pattern}`);
       return serializeService(service);
     },
   },

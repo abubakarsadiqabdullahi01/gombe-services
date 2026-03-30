@@ -1,0 +1,83 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: gombe-web
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker.dev
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - gombe-network
+    develop:
+      watch:
+        - action: sync
+          path: ./app
+          target: /app/app
+        - action: sync
+          path: ./components
+          target: /app/components
+        - action: sync
+          path: ./lib
+          target: /app/lib
+        - action: sync
+          path: ./generated
+          target: /app/generated
+        - action: sync
+          path: ./prisma
+          target: /app/prisma
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: pnpm-lock.yaml
+
+  db:
+    image: postgres:16-alpine
+    container_name: gombe-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: gombe_user
+      POSTGRES_PASSWORD: gombe_pass
+      POSTGRES_DB: gombe_services
+    volumes:
+      - gombe_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gombe_user -d gombe_services"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - gombe-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: gombe-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - gombe_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - gombe-network
+
+volumes:
+  gombe_pgdata:
+  gombe_redis_data:
+
+networks:
+  gombe-network:
+    driver: bridge

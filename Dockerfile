@@ -1,8 +1,10 @@
+# syntax=docker/dockerfile:1.7
+
 # ─── Stage 1: Dependencies ───────────────────────────────────────────
 FROM node:20-alpine AS deps
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pinned pnpm for reproducible builds
+RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 
 WORKDIR /app
 
@@ -11,7 +13,8 @@ COPY package.json pnpm-lock.yaml* ./
 COPY prisma ./prisma/
 
 # Install all deps (including dev — needed for prisma generate)
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
 # Generate Prisma client
 RUN pnpm prisma generate
@@ -20,7 +23,7 @@ RUN pnpm prisma generate
 # ─── Stage 2: Build ──────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 
 WORKDIR /app
 
@@ -33,7 +36,8 @@ COPY . .
 
 # Build Next.js app (output: standalone for smaller image)
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm build
+RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
+    pnpm build
 
 
 # ─── Stage 3: Production Runner ──────────────────────────────────────
